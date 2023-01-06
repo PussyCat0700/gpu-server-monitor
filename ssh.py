@@ -4,26 +4,22 @@ import paramiko
 
 class SshPool:
     def __init__(self):
-        self.pool = {}  # { (username, hostname, port): SSHClient }
-
-        self.pkey = paramiko.RSAKey.from_private_key_file(
-            os.path.join(os.path.expanduser('~'), '.ssh/id_rsa')
-        )
+        self.pool = {}  # { (username, hostname, port, password): SSHClient }
 
     def clear(self):
         for sess in self.pool.values():
             sess.close()
         self.pool.clear()
 
-    def get(self, username, hostname, port, logger=None):
-        if (username, hostname, port) not in self.pool:
+    def get(self, username, hostname, port, password, logger=None):
+        if (username, hostname, port, password) not in self.pool:
             sess = paramiko.SSHClient()
             sess.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             sess.connect(
                 hostname, port,
                 username=username,
-                pkey=self.pkey,
-                banner_timeout=10
+                password=password,
+                banner_timeout=10,
             )
 
             self.pool[(username, hostname, port)] = sess

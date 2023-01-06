@@ -4,7 +4,8 @@ from datetime import datetime
 
 
 # Python script to query runtime statistics
-QUERY_CMD = """/usr/bin/python3 -c "
+QUERY_CMD = """
+/home/yfliu/anaconda3/bin/python  -c "
 import io, json, psutil, gpustat
 fp = io.StringIO()
 stat = gpustat.GPUStatCollection.new_query().print_json(fp)
@@ -21,22 +22,23 @@ print(json.dumps(stat))"
 def query(server_list, logger):
     stat_md = '<center>\n\n'
     stat_md += '# Server Statistics\n\n'
-    stat_md += '### %s\n\n' % datetime.isoformat(datetime.now(), sep=' ', timespec='seconds')
+    stat_md += '### Last Updated: %s\n\n' % datetime.isoformat(datetime.now(), sep=' ', timespec='seconds')
     stat_md += '</center>\n\n'
 
     logger.info('Querying %d hosts...' % len(server_list))
 
-    for username, hostname, port in server_list:
+    for username, hostname, port, password in server_list:
         stat_md += '<br><br>\n\n'
 
         sess = None
         try:
-            sess = ssh_pool_global.get(username, hostname, port, logger)
+            sess = ssh_pool_global.get(username, hostname, port, password, logger)
             _, stdout, _ = sess.exec_command(QUERY_CMD, timeout=10)
             server_stat = json.load(stdout)
-        except:
+        except Exception as e:
             ssh_pool_global.mark_broken(sess)
             logger.info('Failed to connect to %s:%d' % (hostname, port))
+            logger.info(f'Failure Detail:{e}')
             stat_md += '<span style="color:black">**' + \
                 'Failed to retrieve statistics for ' + \
                 '`%s@%s:%d`' % (username, hostname, port) + \
